@@ -1,6 +1,7 @@
 #ifndef _NETFREE_MAC_INTERFACE
   #define _NETFREE_MAC_INTERFACE
 
+  #define NETFREE_MAC_SIZE          6   // Number of bytes in used to store a MAC address
   /**
    * The following path directs the program to the system directory that could
    * contain the system's MAC address, which will be used before other methods.
@@ -14,6 +15,8 @@
    */
   #define NETFREE_SYSTEM_ADD_FILE   "/address"
 
-  extern char *getCurrentMacAddress(char *iface);
-  extern char *getOriginalMacAddress();
+  extern void initMac(char *netInterface);
+  extern void destroyMac();
+  extern int getCurrentMacAddress(char *macAddress);
+  extern int getOriginalMacAddress(char *originalMacAddr);
 #endif
