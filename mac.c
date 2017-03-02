@@ -39,11 +39,15 @@ int getCurrentMacAddressBySystemFile(char *macAddress) {
 
   // Open and read the file.
   if(access(systemFileName, R_OK)) {
+    free(systemFileName);
+    
     return -1;
   }
 
   addressFile = fopen(systemFileName, "r");
   if(!addressFile) {
+    free(systemFileName);
+
     return -1;
   }
 
