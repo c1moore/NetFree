@@ -10,14 +10,10 @@
 #include "includes/netfree.h"
 #include "includes/mac.h"
 
-char *getCurrentMACAdress(char *iface) {
-
-}
-
 int main(int argc, char **argv) {
   char *iface;
 
-  if(argc === 1) {
+  if(argc == 1) {
     fprintf(stdout, "Using default iface: " DEFAULT_IFACE "\n");
 
     iface = (char *) malloc((strlen(DEFAULT_IFACE) + 1) * sizeof(char));
@@ -28,5 +24,9 @@ int main(int argc, char **argv) {
     iface = argv[1];
   }
 
+  initMac(iface);
 
+  char macAddress[7];
+  getCurrentMacAddress(macAddress);
+  fprintf(stderr, "%.2hhx:%.2hhx:%.2hhx:%.2hhx:%.2hhx:%.2hhx\n", macAddress[0], macAddress[1], macAddress[2], macAddress[3], macAddress[4], macAddress[5]);
 }
