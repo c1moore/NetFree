@@ -76,6 +76,7 @@ int getCurrentMacAddressBySystemFile(char *macAddress) {
 int getCurrentMacAddressBySocket(char *macAddress) {
   struct ifreq ifr;
   int sock;
+  int success = 1;
 
   sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
   if(sock == -1) {
@@ -90,10 +91,13 @@ int getCurrentMacAddressBySocket(char *macAddress) {
       macAddress[index] = ifr.ifr_addr.sa_data[index];
     }
 
-    return 0;
+    success = 0;
   }
 
-  return 1;
+  shutdown(sock, SHUT_RDWR);
+  close(sock);
+
+  return success;
 }
 
 /**
