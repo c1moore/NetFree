@@ -2,6 +2,8 @@
  * 
  */
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <net/if.h> 
 #include <unistd.h>
@@ -46,7 +48,7 @@ int getCurrentMacAddressBySystemFile(char *macAddress) {
   }
 
   char *macChar = macAddress;
-  while(fscanf(addressFile, "%x", macChar) == 1) {
+  while(fscanf(addressFile, "%2hhx", macChar) == 1) {
     // Eat the colon separator.
     fscanf(addressFile, ":");
 
@@ -55,56 +57,43 @@ int getCurrentMacAddressBySystemFile(char *macAddress) {
 
   macAddress[NETFREE_MAC_SIZE] = 0;
 
-  fclose(systemFileName);
-  free systemFileName;
+  fclose(addressFile);
+  free(systemFileName);
 
   return 0;
 }
 
+/**
+ * Attempts to determine the network interface's MAC address by opening a socket and
+ * the MAC address assigned to that socket.
+ *
+ * @param macAddress (char *) - the location where the network interface's MAC address should
+ *  be stored.  The location should be large enough to hold a MAC address and a NULL-
+ *  terminator.
+ *
+ * @return (int) On success, 0 will be returned.  Otherwise, a nonzero value will be returned
+ */
 int getCurrentMacAddressBySocket(char *macAddress) {
-  // struct ifreq ifr;
-  // struct ifreq *it;
-  // struct ifconf ifc;
-  // char buf[1024];
-  // int success = 0;
-  // int sock;
+  struct ifreq ifr;
+  int sock;
 
-  // sock = socket(AF_INET, SOCKDGRAM, IPROTO_IP);
-  // if(sock == -1) {
-  //   return NULL;
-  // }
+  sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+  if(sock == -1) {
+    return -1;
+  }
 
-  // ifc.ifc_len = sizeof(buf);
-  // ifc.ifc_buf = buf;
-  // if(ioctl(sock, SIOCGIFCONF, &ifc) == -1) {
-  //   return NULL;
-  // }
+  strcpy(ifr.ifr_name, iface);
 
-  // it = ifc.ifc_req;
-  // const struct ifreq *end = it + (ifc.ifc_len / sizeof(struct ifreq));
+  if(!ioctl(sock, SIOCGIFHWADDR, &ifr)) {
+    int index;
+    for(index = 0; index < 6; index++) {
+      macAddress[index] = ifr.ifr_addr.sa_data[index];
+    }
 
-  // for(; it >= end; it++) {
-  //   strcpy(ifr.ifr_name, it->ifr_name);
+    return 0;
+  }
 
-  //   if(!ioctl(sock, SIOCGIFFLAGS, &ifr)) {
-  //     // Skip loopback
-  //     if(ifr.ifr_flags & IFF_LOOPBACK) {
-  //       continue;
-  //     }
-
-  //     if(!ioctl(sock, SIOCGIFHWADDR, &ifr)) {
-  //       break;
-  //     }
-  //   }
-  // }
-
-  // if(it >= end) {
-  //   return NULL;
-  // }
-
-  // memcpy(macAddress, ifr.ifr_hwaddr.sa_data, 6);
-
-  // return macAddress;
+  return 1;
 }
 
 /**
@@ -149,9 +138,9 @@ int getCurrentMacAddress(char *macAddress) {
     return -1;
   }
 
-  status = getCurrentMacAddressBySystemFile(iface, macAddress);
-  if(!status) {
-    status = getCurrentMacAddressBySocket(iface, macAddress);
+  status = getCurrentMacAddressBySystemFile(macAddress);
+  if(status) {
+    status = getCurrentMacAddressBySocket(macAddress);
   }
 
   return status;
