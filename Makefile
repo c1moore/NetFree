@@ -14,4 +14,4 @@ test: $(FILES) $(TEST_FILES) $(INCLUDES) $(TEST_INCLUDES)
 	$(CC) $(FILES) $(TEST_FILES) -o ./test_netfree $(CFLAGS) $(TEST_CFLAGS)
 
 clean:
-	rm -f ./*.o ./adhawk
+	rm -f ./*.o ./netfree
