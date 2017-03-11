@@ -5,7 +5,7 @@ TEST_INCLUDES = $(wildcard ./tests/includes/*.h)
 FILES = $(wildcard ./*.c)
 TEST_FILES = $(wildcard ./tests/*.c)
 CFLAGS = -I ./includes/ -lpthread -lpcap
-TEST_CFLAGS = -I ./includes/ -Wl,-wrap,malloc -Wl,-wrap,calloc -Wl,-wrap,realloc -Wl,-wrap,free
+TEST_CFLAGS = -I ./tests/includes/ -Wl,-wrap,malloc -Wl,-wrap,calloc -Wl,-wrap,realloc -Wl,-wrap,free -lcallback -ltrampoline -lavcall -lvacall
 
 all: $(FILES) $(INCLUDES)
 	$(CC) $(FILES) -o ./netfree $(CFLAGS)
