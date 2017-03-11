@@ -10,6 +10,9 @@
 #include "includes/netfree.h"
 #include "includes/mac.h"
 
+#include <callback.h>
+#include "tests/includes/TestSuite.h"
+
 int main(int argc, char **argv) {
   char *iface;
 
