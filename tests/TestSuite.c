@@ -6,6 +6,8 @@
 
 #include "TestSuite.h"
 
+#define ERROR_MESSAGE_LENGTH  100
+
 int requiredIndentation = 0;
 char *currentTest;
 
@@ -103,7 +105,8 @@ void _fail(char *reason, char *fileName, int lineNumber) {
  * funcToTest, one could use the following code `expect(&funcToTest())->toBe->False()`.
  * Instead of calling this function directly, one should prefer the `expect()` macro.
  *
- * @param value (void *) - a pointer to the value to test
+ * @param value (void *) - a pointer to the value to test.  If the value is a string, it
+ *  MUST be NULL-terminated.
  * @param fileName (char *) - the name of the file calling this function
  * @param lineNumber (int) - the line number of the call to this function
  *
@@ -127,7 +130,7 @@ Assertion *_expect(void *value, char *fileName, int lineNumber) {
       char actual[6];
       strcpy(actual, *((bool *)closureData->value) ? "true" : "false");
 
-      char errorMessage[55];
+      char errorMessage[ERROR_MESSAGE_LENGTH];
       sprintf(errorMessage, "Expected " TC_FAIL_COLOR "%s" TC_FAIL_END" to be " TC_SUCCESS_COLOR "%s" TC_SUCCESS_END ".", actual, expected);
 
       _fail(errorMessage, closureData->fileName, closureData->lineNumber);
@@ -150,7 +153,7 @@ Assertion *_expect(void *value, char *fileName, int lineNumber) {
       char actual[6];
       strcpy(actual, *((bool *)closureData->value) ? "true" : "false");
 
-      char errorMessage[55];
+      char errorMessage[ERROR_MESSAGE_LENGTH];
       sprintf(errorMessage, "Expected " TC_FAIL_COLOR "%s" TC_FAIL_END " to be " TC_SUCCESS_COLOR "%s" TC_SUCCESS_END ".", actual, expected);
 
       _fail(errorMessage, closureData->fileName, closureData->lineNumber);
@@ -167,37 +170,95 @@ Assertion *_expect(void *value, char *fileName, int lineNumber) {
    *  upper bounds of the expected range
    */
   void expectInRange(void *data, va_alist args) {
-    int lowerBound;
-    int upperBound;
     struct AssertionClosureData *closureData = (struct AssertionClosureData *) data;
 
     va_start_int(args);
-    lowerBound = va_arg_int(args);
-    upperBound = va_arg_int(args);
+    int lowerBound = va_arg_int(args);
+    int upperBound = va_arg_int(args);
 
     bool negate = *((bool *) closureData->negate);
 
     int actualValue = *((int *) closureData->value);
     bool isInRange = actualValue > lowerBound && actualValue < upperBound;
 
-    if(isInRange != negate) {
-      char errorMessage[100];
+    if(isInRange == negate) {
+      char errorMessage[ERROR_MESSAGE_LENGTH];
       sprintf(errorMessage, "Expected " TC_FAIL_COLOR "%d" TC_FAIL_END " to be between " TC_SUCCESS_COLOR "%d" TC_SUCCESS_END " and " TC_SUCCESS_START "%d" TC_SUCCESS_END ".", actualValue, lowerBound, upperBound);
 
       _fail(errorMessage, closureData->fileName, closureData->lineNumber);
     }
   }
 
-  void expectEqual() {
+  /**
+   * Expects the value passed to _expect() to equal the specified value.
+   *
+   * @param data (AssertionClosureData) - closure data necessary passed from the trampoline
+   *  or callback functions
+   * @param args (va_alist) - varargs passed to the Assertion->equal function.  The first
+   *  and only arg is the expected value
+   */
+  void expectEqual(void *data, va_alist args) {
+    struct AssertionClosureData *closureData = (struct AssertionClosureData *) data;
 
+    va_start_int(args);
+    int expectedValue = va_arg_int(args);
+
+    int actualValue = *((int *) closureData->value);
+    bool negate = *((bool *) closureData->negate);
+
+    bool equals = expectedValue == actualValue;
+    if(equals == negate) {
+      char errorMessage[ERROR_MESSAGE_LENGTH];
+      sprintf(errorMessage, "Expected " TC_FAIL_COLOR "%d" TC_FAIL_END " to equal " TC_SUCCESS_COLOR "%d" TC_SUCCESS_END ".", actualValue, expectedValue);
+
+      _fail(errorMessage, closureData->fileName, closureData->lineNumber);
+    }
   }
 
-  void expectEqualStr() {
+  /**
+   * Expects the value passed to _expect() to equal the specified string.
+   *
+   * @param data (AssertionClosureData) - closure data necessary passed from the trampoline
+   *  or callback functions
+   * @param args (va_alist) - varargs passed to the Assertion->equal function.  The first
+   *  and only arg is a (char *) to the expected null-terminated string
+   */
+  void expectEqualStr(void *data, va_alist args) {
+    struct AssertionClosureData *closureData = (struct AssertionClosureData *) data;
 
+    va_start_int(args);
+    char *expectedValue = va_arg_ptr(args, char *);
+
+    char *actualValue = (char *) closureData->value;
+    bool negate = *((bool *) closureData->negate);
+
+    bool equals = !strcmp(expectedValue, actualValue);
+    if(equals == negate) {
+      char errorMessage[ERROR_MESSAGE_LENGTH];
+      sprintf(errorMessage, "Expected " TC_FAIL_COLOR "%s" TC_FAIL_END " to equal " TC_SUCCESS_COLOR "%s" TC_SUCCESS_END ".", actualValue, expectedValue);
+
+      _fail(errorMessage, closureData->fileName, closureData->lineNumber);
+    }
   }
 
-  void expectNull() {
+  /**
+   * Expects the value passed to _expect() to equal NULL.
+   *
+   * @param data (AssertionClosureData) - closure data necessary passed from the trampoline
+   *  or callback functions
+   */
+  void expectNull(void *data) {
+    struct AssertionClosureData *closureData = (struct AssertionClosureData *) data;
 
+    bool negate = *((bool *) closureData->negate);
+    bool isNull = (NULL == closureData->value);
+
+    if(isNull == negate) {
+      char errorMessage[ERROR_MESSAGE_LENGTH];
+      sprintf(errorMessage, "Expected " TC_FAIL_COLOR "%p" TC_FAIL_END " to equal " TC_SUCCESS_COLOR "NULL" TC_SUCCESS_END ".", closureData->value);
+
+      _fail(errorMessage, closureData->fileName, closureData->lineNumber);
+    }
   }
 
   Assertions *positiveAssert = (Assertions *) __real_malloc(2 * sizeof(Assertions));
@@ -214,8 +275,12 @@ Assertion *_expect(void *value, char *fileName, int lineNumber) {
   negativeClosureData->negate = true;
 
   positiveAssert->False = alloc_callback(&expectFalse, (void *) positiveClosureData);
+  positiveAssert->True = alloc_callback(&expectFalse, (void *) positiveClosureData);
+  positiveAssert->inRange = alloc_callback(&expectFalse, (void *) positiveClosureData);
 
   negativeAssert->False = alloc_callback(&expectFalse, (void *) negativeClosureData);
+  negativeAssert->True = alloc_callback(&expectFalse, (void *) negativeClosureData);
+  negativeAssert->inRange = alloc_callback(&expectFalse, (void *) negativeClosureData);
 
   Assertion *assertion = (Assertion *) __real_malloc(sizeof(Assertion));
   assertion->to = positiveAssert;
