@@ -10,6 +10,38 @@
 int requiredIndentation = 0;
 char *currentTest;
 
+typedef testCase TestCase;
+struct testCase {
+  TestCase *next;
+
+  char *description;
+  void (*test)();
+}
+
+typedef describeBlock DescribeBlock;
+struct describeBlock {
+  char *description;
+
+  DescribeBlock *parent;
+  DescribeBlock *children;
+  DescribeBlock *next;
+
+  void (*before)();
+  void (*after)();
+  void (*beforeEach)();
+  void (*afterEach)();
+
+  TestCase *tests;
+}
+
+DescribeBlock *describeBlocks;
+DescribeBlock *currentSuite;
+
+void initTests() {
+  describeBlocks = (DescribeBlock *) __real_calloc(1, sizeof(DescribeBlock));
+  currentSuite = describeBlocks;
+}
+
 /**
  * Prints the appropriate amount of indentation for test related output.
  */
@@ -19,6 +51,48 @@ void printIndentation() {
   for(timesIndented = 0; timesIndented < requiredIndentation; timesIndented++) {
     fprintf(stderr, "\t");
   }
+}
+
+/**
+ * Prints the description for a describe block and does any extra work necessary for the
+ * following tests.
+ *
+ * @param suiteDescription (char *) - a string describing the block of tests that follow
+ */
+void executeDescribe(char *description) {
+  printIndentation();
+  fprintf(stderr, "%s\n", description);
+
+  requiredIndentation++;
+}
+
+/**
+ * Ends the inner-most (or most recent) describe block.
+ */
+void executeEndDescribe() {
+  --requiredIndentation;
+}
+
+/**
+ * Executes the specified test.
+ *
+ * @param testCase (TestCase *) - the test case that should be executed
+ */
+void executeTest(TestCase *testCase) {
+  struct timespec stopwatchStart;
+  struct timespec stopwatchStop;
+
+  currentTest = testCase->description;
+
+  clock_gettime(CLOCK_MONOTONIC, &stopwatchStart);
+  testCase->test();
+  clock_gettime(CLOCK_MONOTONIC, &stopwatchStop);
+
+  double startTime = (double) stopwatchStart.tv_sec + (1.0e-9 * stopwatchStart.tv_nsec);
+  double endTime = (double) stopwatchStop.tv_sec + (1.0e-9 * stopwatchStop.tv_nsec);
+
+  printIndentation();
+  fprintf(stderr, TC_SUCCESS_START "%s (%.5f)" TC_SUCCESS_END "\n", currentTest, (endTime - startTime));
 }
 
 /**
@@ -35,10 +109,22 @@ void printIndentation() {
  * @param suiteDescription (char *) - a string describing the block of tests that follow
  */
 void describe(char *suiteDescription) {
-  printIndentation();
-  fprintf(stderr, "%s\n", suiteDescription);
+  DescribeBlock *newDescribe = (DescribeBlock *) __real_calloc(1, sizeof(DescribeBlock));
+  newDescribe->description = suiteDescription;
+  newDescribe->parent = currentSuite;
 
-  requiredIndentation++;
+  if(!currentSuite->children) {
+    currentSuite->children = (DescribeBlock *) __real_calloc(1, sizeof(DescribeBlock));
+  }
+
+  DescribeBlock *currentChild = currentSuite->children;
+  while(currentChild->next) {
+    currentChild = currentChild->next;
+  }
+
+  currentChild->next = newDescribe;
+
+  currentSuite = newDescribe;
 }
 
 /**
@@ -50,9 +136,11 @@ void describe(char *suiteDescription) {
  * @param lineNumber (int) - the lineNumber of the call to endDescribe()
  */
 void _endDescribe(char *fileName, int lineNumber) {
-  if(--requiredIndentation < 0) {
+  if(!currentSuite->parent) {
     _fail("endDescribe() called too many times.", fileName, lineNumber);
   }
+
+  currentSuite = currentSuite->parent;
 }
 
 /**
@@ -64,20 +152,92 @@ void _endDescribe(char *fileName, int lineNumber) {
  * @param testFunc (void (*function)()) - the test to execute
  */
 void test(char *testDescription, void (*testFunc)()) {
-  struct timespec stopwatchStart;
-  struct timespec stopwatchStop;
+  TestCase *newTest = (TestCase *) __real_calloc(1, sizeof(TestCase));
+  newTest->description = testDescription;
+  newTest->test = testFunc;
 
-  currentTest = testDescription;
+  if(!current->tests) {
+    current->tests = (TestCase *) __real_calloc(1, sizeof(TestCase));
+  }
 
-  clock_gettime(CLOCK_MONOTONIC, &stopwatchStart);
-  testFunc();
-  clock_gettime(CLOCK_MONOTONIC, &stopwatchStop);
+  TestCase *currentTest = current->tests;
+  while(currentTest->next) {
+    currentTest = currentTest->next;
+  }
 
-  double startTime = (double) stopwatchStart.tv_sec + (1.0e-9 * stopwatchStart.tv_nsec);
-  double endTime = (double) stopwatchStop.tv_sec + (1.0e-9 * stopwatchStop.tv_nsec);
+  currentTest->next = newTest;
+}
 
-  printIndentation();
-  fprintf(stderr, TC_SUCCESS_START "%s (%.5f)" TC_SUCCESS_END "\n", currentTest, (endTime - startTime));
+/**
+ * Defines the function that should be executed exactly once before any tests within the
+ * current describe block should execute.  Each describe block is only allowed a single
+ * before() function.
+ *
+ * @param beforeFunc(void (*)()) - the function to execute exactly once before any test
+ *  within the current describe block
+ * @param fileName (char *) - the name of the file setting up the before() function
+ * @param lineNumber (int) - the line number of the invocation of this function
+ */
+void _before(void (*beforeFunc)(), char *fileName, int lineNumber) {
+  if(currentSuite->before) {
+    _fail("Current suite already has before() defined.", fileName, lineNumber);
+  }
+
+  currentSuite->before = beforeFunc;
+}
+
+/**
+ * Defines the function that should be executed before every test within the current
+ * describe block should execute.  Each describe block is only allowed a single
+ * beforeEach() function.
+ *
+ * @param beforeEachFunc(void (*)()) - the function to execute before every test within the
+ *  current describe block
+ * @param fileName (char *) - the name of the file setting up the before() function
+ * @param lineNumber (int) - the line number of the invocation of this function
+ */
+void _beforeEach(void (*beforeEachFunc)(), char *fileName, int lineNumber) {
+  if(currentSuite->beforeEach) {
+    _fail("Current suite already has beforeEach() defined.", fileName, lineNumber);
+  }
+
+  currentSuite->beforeEach = beforeEachFunc;
+}
+
+/**
+ * Defines the function that should be executed exactly once after all tests within the
+ * current describe block have finished executing.  Each describe block is only allowed a
+ * single after() function.
+ *
+ * @param afterFunc(void (*)()) - the function to execute exactly once after all tests
+ *  have completed within the current describe block
+ * @param fileName (char *) - the name of the file setting up the before() function
+ * @param lineNumber (int) - the line number of the invocation of this function
+ */
+void _after(void (*afterFunc)(), char *fileName, int lineNumber) {
+  if(currentSuite->after) {
+    _fail("Current suite already has after() defined.", fileName, lineNumber);
+  }
+
+  currentSuite->after = afterFunc;
+}
+
+/**
+ * Defines the function that should be executed after every test within the current
+ * describe block has completed.  Each describe block is only allowed a single afterEach()
+ * function.
+ *
+ * @param afterEachFunc(void (*)()) - the function to execute after each test within the
+ *  current describe block has completed
+ * @param fileName (char *) - the name of the file setting up the before() function
+ * @param lineNumber (int) - the line number of the invocation of this function
+ */
+void _afterEach(void (*afterEachFunc)(), char *fileName, int lineNumber) {
+  if(currentSuite->afterEach) {
+    _fail("Current suite already has afterEach() defined.", fileName, lineNumber);
+  }
+
+  currentSuite->afterEach = afterEachFunc;
 }
 
 /**
@@ -147,4 +307,32 @@ Assertion *_expect(void *value, char *fileName, int lineNumber) {
   assertion->notToBe = negativeAssert;
 
   return assertion;
+}
+
+/**
+ * Runs all beforeEach() functions for the current describe block.  Since a describe block
+ * inherits beforeEach() functions, this includes the beforeEach() functions of parent
+ * describe blocks.
+ */
+void setUpTest() {
+
+}
+
+/**
+ * Runs all afterEach() functions for the current describe block.  Since a describe block
+ * inherits afterEach() functions, this includes the afterEach() functions of parent
+ * describe blocks.
+ */
+void tearDownTest() {
+
+}
+
+/**
+ * Executes all tests.
+ */
+void executeTests() {
+  // Make sure all endDescribe() functions have been called.
+  if(currentSuite->parent) {
+    fail("Not all describe blocks have been closed.");
+  }
 }

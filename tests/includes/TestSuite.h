@@ -33,15 +33,21 @@
   extern void  __wrap_free    (void *ptr);
 
   /* Test Suite Functions */
-  #define endDescribe() _endDescribe(__FILE__, __LINE__)
+  #define endDescribe()     _endDescribe(__FILE__, __LINE__)
+  #define before(func)      _before(func, __FILE__, __LINE__)
+  #define beforeEach(func)  _beforeEach(func, __FILE__, __LINE__)
+  #define after(func)       _after(func, __FILE__, __LINE__)
+  #define afterEach(func)   _afterEach(func, __FILE__, __LINE__)
 
+  extern void initTests();
   extern void describe(char *suiteDescription);
-  extern void before(void (*beforeFunc)());
-  extern void beforeEach(void (*beforeEachFunc)());
+  extern void _before(void (*beforeFunc)());
+  extern void _beforeEach(void (*beforeEachFunc)());
   extern void test(char *testDescription, void (*testFunc)());
-  extern void afterEach(void (*afterEachFunc)());
-  extern void after(void (*afterFunc)());
+  extern void _afterEach(void (*afterEachFunc)());
+  extern void _after(void (*afterFunc)());
   extern void _endDescribe(char *, int);
+  extern void executeTests();
 
   /* Test Helpers */
   #define expect(val)   _expect(val, __FILE__, __LINE__)

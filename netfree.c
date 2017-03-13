@@ -31,5 +31,5 @@ int main(int argc, char **argv) {
 
   char macAddress[7];
   getCurrentMacAddress(macAddress);
-  fprintf(stderr, "%.2hhx:%.2hhx:%.2hhx:%.2hhx:%.2hhx:%.2hhx\n", macAddress[0], macAddress[1], macAddress[2], macAddress[3], macAddress[4], macAddress[5]);
+  fprintf(stderr, "Original MAC Address: %.2hhx:%.2hhx:%.2hhx:%.2hhx:%.2hhx:%.2hhx\n", macAddress[0], macAddress[1], macAddress[2], macAddress[3], macAddress[4], macAddress[5]);
 }
