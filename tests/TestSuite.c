@@ -1,3 +1,8 @@
+/**
+ * This file defines the testing framework for NetFree.  The framework was inspired by
+ * popular testing frameworks used by MEAN stacks.
+ */
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,39 +13,47 @@
 #include "Assertions.h"
 
 int requiredIndentation = 0;
-char *currentTest;
+char *currentTestDescription;
 
-typedef testCase TestCase;
-struct testCase {
-  TestCase *next;
+typedef struct testCase {
+  struct testCase *next;
 
   char *description;
   void (*test)();
-}
+} TestCase;
 
-typedef describeBlock DescribeBlock;
-struct describeBlock {
+typedef struct describeBlock {
   char *description;
 
-  DescribeBlock *parent;
-  DescribeBlock *children;
-  DescribeBlock *next;
+  struct describeBlock *parent;
+  struct describeBlock *children;
+  struct describeBlock *next;
 
-  void (*before)();
-  void (*after)();
-  void (*beforeEach)();
-  void (*afterEach)();
+  void (*_before)();
+  void (*_after)();
+  void (*_beforeEach)();
+  void (*_afterEach)();
 
   TestCase *tests;
-}
+} DescribeBlock;
 
 DescribeBlock *describeBlocks;
 DescribeBlock *currentSuite;
 
+/**
+ * Initializes the testing framework.  This is similar to calling new on an object in an
+ * OO programming language.  If this function is not called, the behavior is undefined.
+ */
 void initTests() {
   describeBlocks = (DescribeBlock *) __real_calloc(1, sizeof(DescribeBlock));
   currentSuite = describeBlocks;
 }
+
+/*=============================================================================
+ *=============================================================================
+ * Private Methods
+ *=============================================================================
+ *=============================================================================/
 
 /**
  * Prints the appropriate amount of indentation for test related output.
@@ -82,7 +95,7 @@ void executeTest(TestCase *testCase) {
   struct timespec stopwatchStart;
   struct timespec stopwatchStop;
 
-  currentTest = testCase->description;
+  currentTestDescription = testCase->description;
 
   clock_gettime(CLOCK_MONOTONIC, &stopwatchStart);
   testCase->test();
@@ -92,8 +105,87 @@ void executeTest(TestCase *testCase) {
   double endTime = (double) stopwatchStop.tv_sec + (1.0e-9 * stopwatchStop.tv_nsec);
 
   printIndentation();
-  fprintf(stderr, TC_SUCCESS_START "%s (%.5f)" TC_SUCCESS_END "\n", currentTest, (endTime - startTime));
+  fprintf(stderr, TC_SUCCESS_START "%s (%.5f)" TC_SUCCESS_END "\n", currentTestDescription, (endTime - startTime));
 }
+
+/**
+ * Runs all beforeEach() functions for the current describe block.  Since a describe block
+ * inherits beforeEach() functions, this includes the beforeEach() functions of parent
+ * describe blocks.  The beforeEach() of the outer-most describe block is executed first.
+ *
+ * @param describeNode (DescribeBlock *) - the inner-most describe block (leaf node) from
+ *  which all beforeEach() functions should be executed.
+ */
+void setUpTest(DescribeBlock *describeNode) {
+  if(describeNode->parent) {
+    setUpTest(describeNode->parent);
+  }
+
+  if(describeNode->_beforeEach) {
+    describeNode->_beforeEach();
+  }
+}
+
+/**
+ * Runs all afterEach() functions for the current describe block.  Since a describe block
+ * inherits afterEach() functions, this includes the afterEach() functions of parent
+ * describe blocks.  The afterEach() of the outer-most describe block is executed first
+ * then the afterEach() functions along the path back done to this leaf node is executed.
+ *
+ * @param describeNode (DescribeBlock *) - the inner-most describe block (leaf node) from
+ *  which all afterEach() functions should be executed.
+ */
+void tearDownTest(DescribeBlock *describeNode) {
+  if(describeNode->parent) {
+    setUpTest(describeNode->parent);
+  }
+
+  if(describeNode->_afterEach) {
+    describeNode->_afterEach();
+  }
+}
+
+/**
+ * Traverses all tests and describe blocks under the current describe block in a preorder
+ * traversal of the given describe node.
+ *
+ * @param testNode (DescribeBlock *) - the root of the describe block tree
+ */
+void traverseTests(DescribeBlock *testNode) {
+  executeDescribe(testNode->description);
+
+  if(testNode->_before) {
+    testNode->_before();
+  }
+
+  TestCase *currentTest = testNode->tests;  // Skip head of list (which is just empty).
+  while(currentTest->next) {
+    currentTest = currentTest->next;
+
+    setUpTest(testNode);
+    executeTest(currentTest);
+    tearDownTest(testNode);
+  }
+
+  DescribeBlock *currentDescribe = testNode->children;
+  while(currentDescribe->next) {
+    currentDescribe = currentDescribe->next;
+
+    traverseTests(currentDescribe);
+  }
+
+  if(testNode->_after) {
+    testNode->_after();
+  }
+
+  executeEndDescribe();
+}
+
+/*=============================================================================
+ *=============================================================================
+ * Public Methods
+ *=============================================================================
+ *=============================================================================/
 
 /**
  * Starts a new describe block for all the tests that follow up until endDescribe() is 
@@ -132,6 +224,9 @@ void describe(char *suiteDescription) {
  * testing output.  An error will be thrown if endDescribe() does not have a matching
  * describe().
  *
+ * Instead of using this method directly, one should use the `endDescribe()` macro, which
+ * adds the required parameters implicitly.
+ *
  * @param fileName (char *) - the name of the file calling endDescribe()
  * @param lineNumber (int) - the lineNumber of the call to endDescribe()
  */
@@ -156,11 +251,11 @@ void test(char *testDescription, void (*testFunc)()) {
   newTest->description = testDescription;
   newTest->test = testFunc;
 
-  if(!current->tests) {
-    current->tests = (TestCase *) __real_calloc(1, sizeof(TestCase));
+  if(!currentSuite->tests) {
+    currentSuite->tests = (TestCase *) __real_calloc(1, sizeof(TestCase));
   }
 
-  TestCase *currentTest = current->tests;
+  TestCase *currentTest = currentSuite->tests;
   while(currentTest->next) {
     currentTest = currentTest->next;
   }
@@ -173,17 +268,20 @@ void test(char *testDescription, void (*testFunc)()) {
  * current describe block should execute.  Each describe block is only allowed a single
  * before() function.
  *
+ * Instead of using this method directly, one should use the `before()` macro, which
+ * adds the fileName and lineNumber implicitly.
+ *
  * @param beforeFunc(void (*)()) - the function to execute exactly once before any test
  *  within the current describe block
  * @param fileName (char *) - the name of the file setting up the before() function
  * @param lineNumber (int) - the line number of the invocation of this function
  */
 void _before(void (*beforeFunc)(), char *fileName, int lineNumber) {
-  if(currentSuite->before) {
+  if(currentSuite->_before) {
     _fail("Current suite already has before() defined.", fileName, lineNumber);
   }
 
-  currentSuite->before = beforeFunc;
+  currentSuite->_before = beforeFunc;
 }
 
 /**
@@ -191,17 +289,20 @@ void _before(void (*beforeFunc)(), char *fileName, int lineNumber) {
  * describe block should execute.  Each describe block is only allowed a single
  * beforeEach() function.
  *
+ * Instead of using this method directly, one should use the `beforeEach()` macro, which
+ * adds the fileName and lineNumber implicitly.
+ *
  * @param beforeEachFunc(void (*)()) - the function to execute before every test within the
  *  current describe block
  * @param fileName (char *) - the name of the file setting up the before() function
  * @param lineNumber (int) - the line number of the invocation of this function
  */
 void _beforeEach(void (*beforeEachFunc)(), char *fileName, int lineNumber) {
-  if(currentSuite->beforeEach) {
+  if(currentSuite->_beforeEach) {
     _fail("Current suite already has beforeEach() defined.", fileName, lineNumber);
   }
 
-  currentSuite->beforeEach = beforeEachFunc;
+  currentSuite->_beforeEach = beforeEachFunc;
 }
 
 /**
@@ -209,17 +310,20 @@ void _beforeEach(void (*beforeEachFunc)(), char *fileName, int lineNumber) {
  * current describe block have finished executing.  Each describe block is only allowed a
  * single after() function.
  *
+ * Instead of using this method directly, one should use the `after()` macro, which
+ * adds the fileName and lineNumber implicitly.
+ *
  * @param afterFunc(void (*)()) - the function to execute exactly once after all tests
  *  have completed within the current describe block
  * @param fileName (char *) - the name of the file setting up the before() function
  * @param lineNumber (int) - the line number of the invocation of this function
  */
 void _after(void (*afterFunc)(), char *fileName, int lineNumber) {
-  if(currentSuite->after) {
+  if(currentSuite->_after) {
     _fail("Current suite already has after() defined.", fileName, lineNumber);
   }
 
-  currentSuite->after = afterFunc;
+  currentSuite->_after = afterFunc;
 }
 
 /**
@@ -227,22 +331,28 @@ void _after(void (*afterFunc)(), char *fileName, int lineNumber) {
  * describe block has completed.  Each describe block is only allowed a single afterEach()
  * function.
  *
+ * Instead of using this method directly, one should use the `afterEach()` macro, which
+ * adds the fileName and lineNumber implicitly.
+ *
  * @param afterEachFunc(void (*)()) - the function to execute after each test within the
  *  current describe block has completed
  * @param fileName (char *) - the name of the file setting up the before() function
  * @param lineNumber (int) - the line number of the invocation of this function
  */
 void _afterEach(void (*afterEachFunc)(), char *fileName, int lineNumber) {
-  if(currentSuite->afterEach) {
+  if(currentSuite->_afterEach) {
     _fail("Current suite already has afterEach() defined.", fileName, lineNumber);
   }
 
-  currentSuite->afterEach = afterEachFunc;
+  currentSuite->_afterEach = afterEachFunc;
 }
 
 /**
  * Fails the currently running test, printing the reason for the failure, and exits the
  * program.
+ *
+ * Instead of using this method directly, one should use the `fail()` macro, which
+ * adds the fileName and lineNumber implicitly.
  *
  * @param reason (char *) - the reason for the test failed
  * @param fileName (char *) - the name of the file were the error occurred
@@ -250,7 +360,7 @@ void _afterEach(void (*afterEachFunc)(), char *fileName, int lineNumber) {
  */
 void _fail(char *reason, char *fileName, int lineNumber) {
   printIndentation();
-  fprintf(stderr, TC_FAIL_START "%s" TC_FAIL_END "\n", currentTest);
+  fprintf(stderr, TC_FAIL_START "%s" TC_FAIL_END "\n", currentTestDescription);
 
   printIndentation();
   fprintf(stderr, "\t%s (%s:%d)\n", reason, fileName, lineNumber);
@@ -263,6 +373,9 @@ void _fail(char *reason, char *fileName, int lineNumber) {
  * value.  For example, to test the return value of a function creatively named
  * funcToTest, one could use the following code `expect(&funcToTest())->toBe->False()`.
  * Instead of calling this function directly, one should prefer the `expect()` macro.
+ *
+ * Instead of using this method directly, one should use the `expect()` macro, which
+ * adds the fileName and lineNumber implicitly.
  *
  * @param value (void *) - a pointer to the value to test.  If the value is a string, it
  *  MUST be NULL-terminated.
@@ -310,29 +423,13 @@ Assertion *_expect(void *value, char *fileName, int lineNumber) {
 }
 
 /**
- * Runs all beforeEach() functions for the current describe block.  Since a describe block
- * inherits beforeEach() functions, this includes the beforeEach() functions of parent
- * describe blocks.
- */
-void setUpTest() {
-
-}
-
-/**
- * Runs all afterEach() functions for the current describe block.  Since a describe block
- * inherits afterEach() functions, this includes the afterEach() functions of parent
- * describe blocks.
- */
-void tearDownTest() {
-
-}
-
-/**
  * Executes all tests.
  */
 void executeTests() {
-  // Make sure all endDescribe() functions have been called.
+  // Make sure all describe blocks are closed.
   if(currentSuite->parent) {
     fail("Not all describe blocks have been closed.");
   }
+
+  traverseTests(currentSuite);
 }

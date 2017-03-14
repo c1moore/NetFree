@@ -40,12 +40,12 @@
   #define afterEach(func)   _afterEach(func, __FILE__, __LINE__)
 
   extern void initTests();
-  extern void describe(char *suiteDescription);
-  extern void _before(void (*beforeFunc)());
-  extern void _beforeEach(void (*beforeEachFunc)());
-  extern void test(char *testDescription, void (*testFunc)());
-  extern void _afterEach(void (*afterEachFunc)());
-  extern void _after(void (*afterFunc)());
+  extern void describe(char *);
+  extern void _before(void (*)(), char *, int);
+  extern void _beforeEach(void (*)(), char *, int);
+  extern void test(char *, void (*)());
+  extern void _afterEach(void (*)(), char *, int);
+  extern void _after(void (*)(), char *, int);
   extern void _endDescribe(char *, int);
   extern void executeTests();
 
