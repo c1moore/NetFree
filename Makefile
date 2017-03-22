@@ -8,10 +8,10 @@ CFLAGS = -I ./includes/ -lpthread -lpcap
 TEST_CFLAGS = -I ./tests/includes/ -Wl,-wrap,malloc -Wl,-wrap,calloc -Wl,-wrap,realloc -Wl,-wrap,free -lcallback -ltrampoline -lavcall -lvacall
 
 all: $(FILES) $(INCLUDES)
-	$(CC) $(FILES) -o ./netfree $(CFLAGS)
+	$(CC) $(FILES) -o ./bin/netfree $(CFLAGS)
 
 test: $(TEST_FILES) $(INCLUDES) $(TEST_INCLUDES)
-	$(CC) $(TEST_FILES) -o ./test_netfree $(CFLAGS) $(TEST_CFLAGS)
+	$(CC) $(TEST_FILES) -o ./bin/test_netfree $(CFLAGS) $(TEST_CFLAGS)
 
 clean:
-	rm -f ./*.o ./netfree
+	rm -f ./bin/*
