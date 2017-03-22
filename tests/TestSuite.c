@@ -5,7 +5,6 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <callback.h>
 #include <time.h>
 
@@ -158,20 +157,24 @@ void traverseTests(DescribeBlock *testNode) {
     testNode->_before();
   }
 
-  TestCase *currentTest = testNode->tests;  // Skip head of list (which is just empty).
-  while(currentTest->next) {
-    currentTest = currentTest->next;
+  if(testNode->tests) {
+    TestCase *currentTest = testNode->tests;
+    while(currentTest->next) {
+      currentTest = currentTest->next;
 
-    setUpTest(testNode);
-    executeTest(currentTest);
-    tearDownTest(testNode);
+      setUpTest(testNode);
+      executeTest(currentTest);
+      tearDownTest(testNode);
+    }
   }
 
-  DescribeBlock *currentDescribe = testNode->children;
-  while(currentDescribe->next) {
-    currentDescribe = currentDescribe->next;
+  if(testNode->children) {
+    DescribeBlock *currentDescribe = testNode->children;
+    while(currentDescribe->next) {
+      currentDescribe = currentDescribe->next;
 
-    traverseTests(currentDescribe);
+      traverseTests(currentDescribe);
+    }
   }
 
   if(testNode->_after) {
@@ -431,5 +434,12 @@ void executeTests() {
     fail("Not all describe blocks have been closed.");
   }
 
-  traverseTests(currentSuite);
+  if(currentSuite->children) {
+    DescribeBlock *currentDescribe = currentSuite->children;
+    while(currentDescribe->next) {
+      traverseTests(currentDescribe->next);
+
+      currentDescribe = currentDescribe->next;
+    }
+  }
 }

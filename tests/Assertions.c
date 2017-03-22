@@ -1,7 +1,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <callback.h>
 
 #include "TestSuite.h"
 #include "Assertions.h"
