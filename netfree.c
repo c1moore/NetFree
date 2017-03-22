@@ -7,11 +7,9 @@
 #include <netinet/in.h>
 #include <errno.h>
 
-#include "includes/netfree.h"
-#include "includes/mac.h"
-
-#include <callback.h>
-#include "tests/includes/TestSuite.h"
+#include "netfree.h"
+#include "mac.h"
+#include "scanner.h"
 
 int main(int argc, char **argv) {
   char *iface;
@@ -32,4 +30,8 @@ int main(int argc, char **argv) {
   char macAddress[7];
   getCurrentMacAddress(macAddress);
   fprintf(stderr, "Original MAC Address: %.2hhx:%.2hhx:%.2hhx:%.2hhx:%.2hhx:%.2hhx\n", macAddress[0], macAddress[1], macAddress[2], macAddress[3], macAddress[4], macAddress[5]);
+
+  initScanner(iface);
+
+  scan();
 }
