@@ -2,6 +2,7 @@
   #define _C1MOORE_TEST_SUITE 
 
   #include <stdbool.h>
+  #include <stdlib.h>
 
   /* Testing colors. */
   #define TC_RESET          "\033[0m"
