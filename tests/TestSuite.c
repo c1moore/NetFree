@@ -103,8 +103,14 @@ void executeTest(TestCase *testCase) {
   double startTime = (double) stopwatchStart.tv_sec + (1.0e-9 * stopwatchStart.tv_nsec);
   double endTime = (double) stopwatchStop.tv_sec + (1.0e-9 * stopwatchStop.tv_nsec);
 
+  int leakedMemory = totalUnfreedMemory();
+
   printIndentation();
-  fprintf(stderr, TC_SUCCESS_START "%s (%.5f)" TC_SUCCESS_END "\n", currentTestDescription, (endTime - startTime));
+  if(leakedMemory <= 0) {
+    fprintf(stderr, TC_SUCCESS_START "%s (%.5f)" TC_SUCCESS_END "\n", currentTestDescription, (endTime - startTime));
+  } else {
+    fprintf(stderr, TC_SUCCESS_START "%s (%.5f)" TC_SUCCESS_END TC_FAIL_COLOR " (%d bytes leaked)" TC_FAIL_END "\n", currentTestDescription, (endTime - startTime), leakedMemory);
+  }
 }
 
 /**
@@ -163,6 +169,7 @@ void traverseTests(DescribeBlock *testNode) {
       currentTest = currentTest->next;
 
       setUpTest(testNode);
+      resetMemoryTracking();
       executeTest(currentTest);
       tearDownTest(testNode);
     }

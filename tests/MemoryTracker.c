@@ -13,6 +13,10 @@ MemoryRef *MemTrackerHead = NULL;
  *  bytes fields prepopulated.
  */
 void addMemoryRef(MemoryRef *newRef) {
+  if(!MemTrackerHead) {
+    MemTrackerHead = (MemoryRef *) __real_calloc(1, sizeof(MemoryRef));
+  }
+
   MemoryRef *previous = MemTrackerHead;
   MemoryRef *current = MemTrackerHead->next;
   while(current != NULL) {
@@ -37,10 +41,8 @@ void addMemoryRef(MemoryRef *newRef) {
  *  location
  */
 MemoryRef *getMemoryRef(void *memoryLoc) {
-  MemoryRef *previous = MemTrackerHead;
   MemoryRef *current = MemTrackerHead->next;
   while(current != NULL && current->ptr != memoryLoc) {
-    previous = current;
     current = current->next;
   }
 
@@ -54,13 +56,19 @@ MemoryRef *getMemoryRef(void *memoryLoc) {
 void resetMemoryTracking() {
   unfreedMemory = 0;
 
-  MemoryRef *current = MemTrackerHead->next;
+  if(!MemTrackerHead) {
+    return;
+  }
+
+  MemoryRef *current = MemTrackerHead;
   while(current->next) {
     current = current->next;
 
     __real_free(current->prev->ptr);
     __real_free(current->prev);
   }
+
+  MemTrackerHead = NULL;
 }
 
 /**
@@ -78,10 +86,6 @@ int totalUnfreedMemory() {
  * and return value mirror that of the real malloc() function.
  */
 void *__wrap_malloc(size_t bytes) {
-  if(!MemTrackerHead) {
-    MemTrackerHead = (MemoryRef *) __real_calloc(1, sizeof(MemoryRef));
-  }
-
   unfreedMemory += bytes;
 
   void *tempPtr = __real_malloc(bytes);
@@ -102,10 +106,6 @@ void *__wrap_malloc(size_t bytes) {
  * and return value mirror that of the real calloc() function.
  */
 void *__wrap_calloc(size_t nitems, size_t size) {
-  if(!MemTrackerHead) {
-    MemTrackerHead = (MemoryRef *) __real_calloc(1, sizeof(MemoryRef));
-  }
-
   size_t totalBytes = nitems * size;
 
   unfreedMemory += totalBytes;
@@ -162,6 +162,10 @@ void __wrap_free(void *ptr) {
   unfreedMemory -= oldRef->bytes;
 
   oldRef->prev->next = oldRef->next;
+
+  if(oldRef->next) {
+    oldRef->next->prev = oldRef->prev;
+  }
 
   __real_free(oldRef);
   __real_free(ptr);

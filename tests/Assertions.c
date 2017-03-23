@@ -39,7 +39,7 @@ void expectFalse(void *data) {
 void expectTrue(void *data) {
   struct AssertionClosureData *closureData = (struct AssertionClosureData *) data;
 
-  if(*((bool *)closureData->value) != closureData->negate) {
+  if(*((bool *)closureData->value) == closureData->negate) {
     char expected[6];
     strcpy(expected, closureData->negate ? "false" : "true");
     
