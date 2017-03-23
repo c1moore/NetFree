@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "includes/mac.h"
 
@@ -171,4 +172,26 @@ int getOriginalMacAddress(char *originalMacAddr) {
 
   strcpy(originalMacAddr, originalMacAddress);
   return 0;
+}
+
+/**
+ * Returns whether the 2 MAC addresses are exactly equal.
+ *
+ * @param leftOperand (char *) - the first MAC address to compare
+ * @param rightOperand (char *) - the second MAC address to compare
+ *
+ * @return true iff the MAC address are equal, false otherwise
+ */
+int macEquals(char *leftOperand, char *rightOperand) {
+  char octetIndex = 0;
+
+  while(octetIndex < NETFREE_MAC_SIZE) {
+    if(leftOperand[octetIndex] != rightOperand[octetIndex]) {
+      return false;
+    }
+
+    octetIndex++;
+  }
+
+  return true;
 }

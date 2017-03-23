@@ -17,6 +17,7 @@
 
   extern void initMac(char *netInterface);
   extern void destroyMac();
-  extern int getCurrentMacAddress(char *macAddress);
-  extern int getOriginalMacAddress(char *originalMacAddr);
+  extern int  getCurrentMacAddress(char *macAddress);
+  extern int  getOriginalMacAddress(char *originalMacAddr);
+  extern int  macEquals(char *, char *);
 #endif
