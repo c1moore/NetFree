@@ -1,11 +1,16 @@
 #include <pcap.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #include "scanner.h"
 #include "iptcpdata.h"
 
-pcap_t *pcapDevHandle;
+pcap_t     *pcapDevHandle;
+pthread_t   scannerThread;
 
+/**
+ * Initializes the scanner and prepares it for use later.
+ */
 int initScanner(char *iface) {
   int                 status;
   char                pcapError[PCAP_ERRBUF_SIZE];
@@ -15,6 +20,7 @@ int initScanner(char *iface) {
   bpf_u_int32         netAddr = 0,
                       netMask = 0;
 
+  scannerThread = (pthread_t) 0;
   pcapDevHandle = pcap_create(iface, pcapError);
 
   status = pcap_set_promisc(pcapDevHandle, 1);
@@ -57,10 +63,31 @@ int initScanner(char *iface) {
   }
 }
 
+/**
+ * Releases all resources used by the scanner.
+ */
 void destroyScanner() {
+  if(scannerThread) {
+    pthread_cancel(scannerThread);
+  }
+
   pcap_close(pcapDevHandle);
 }
 
+/*=============================================================================
+ *=============================================================================
+ * Private Methods
+ *=============================================================================
+ *=============================================================================*/
+
+/**
+ * Receives and parses a packet from pcap.  The MAC addresses of the packet's sending and
+ * receiving devices are read and added to the MAC queue as appropriate.
+ *
+ * @param args (u_char *) - unused
+ * @param header (const struct pcap_pkthdr) - the header for the packet that was received
+ * @param packet (const u_char *) - the packet that was received
+ */
 void receivePacket(u_char *args, const struct pcap_pkthdr *header, const u_char *packet) {
   EthernetHeader *ethernetHeader;
   IpHeader *ipHeader;
@@ -78,6 +105,37 @@ void receivePacket(u_char *args, const struct pcap_pkthdr *header, const u_char 
   }
 }
 
+/**
+ * The start routine for the thread that will be responsible for listening to the
+ * promiscuous port opened earlier indefinitely.  This thread will be cancelable at any
+ * time.
+ */
+void *scanNetwork(void *ptr) {
+  int oldValue;
+
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldValue);
+  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldValue);
+
+  pcap_loop(pcapDevHandle, -1, receivePacket, NULL);
+}
+
+/*=============================================================================
+ *=============================================================================
+ * Public Methods
+ *=============================================================================
+ *=============================================================================*/
+
+/**
+ * Starts scanning for possible MAC addresses to spoof.  This method starts a new thread
+ * that will continue populating a list of MAC addresses until the scanner is destroyed (by
+ * calling destroyScanner()).  This method is guaranteed not to return until at least
+ * NETFREE_MIN_ADDRESSES, which is defined in scanner.h, addresses are found.
+ */
 void scan() {
-  pcap_loop(pcapDevHandle, 500, receivePacket, NULL);
+  pthread_create(&scannerThread, NULL, destroyScanner, NULL);
+
+  // Give the system to populate.
+  while(macQueueLength() < NETFREE_MIN_ADDRESSES) {
+    sleep(1);
+  }
 }
