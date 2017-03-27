@@ -68,6 +68,9 @@ void resetMemoryTracking() {
     __real_free(current->prev);
   }
 
+  __real_free(current->ptr);
+  __real_free(current);
+
   MemTrackerHead = NULL;
 }
 
