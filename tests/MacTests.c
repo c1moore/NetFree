@@ -3,12 +3,6 @@
 #include "mac.h"
 #include "netfree.h"
 
-void test_initMac_initOriginalMac() {
-  int test = 1;
-
-  expect(&test)->to->equal(1);
-}
-
 void beforeEach_destroyMac() {
   resetMemoryTracking();
 }
@@ -42,7 +36,6 @@ void test_macEquals_doesNotEqual() {
 void addMacTests() {
   describe("MAC Tests");
     describe("initMac()");
-      test("should initialize the original MAC address", test_initMac_initOriginalMac);
     endDescribe();
 
     describe("destroyMac()");
