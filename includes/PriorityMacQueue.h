@@ -1,0 +1,8 @@
+#ifndef _NETFREE_PRIORITY_MAC_QUEUE
+  #define _NETFREE_PRIORITY_MAC_QUEUE
+
+  #define NETFREE_REVCOUNT_WEIGHT   1.5
+  #define NETFREE_TIMEDELTA_WEIGHT  0.5
+
+  #include "MacQueue.h"
+#endif
