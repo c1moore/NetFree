@@ -1,12 +1,20 @@
 #include <pcap.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include "scanner.h"
 #include "iptcpdata.h"
+#include "MacQueue.h"
+#include "mac.h"
 
 pcap_t     *pcapDevHandle;
 pthread_t   scannerThread;
+
+char *deviceMacAddress;
+char *routerMacAddress;
 
 /**
  * Initializes the scanner and prepares it for use later.
@@ -61,6 +69,14 @@ int initScanner(char *iface) {
 
     return -5;
   }
+
+  deviceMacAddress = (char *) malloc(NETFREE_MAC_SIZE);
+  routerMacAddress = (char *) malloc(NETFREE_MAC_SIZE);
+
+  getOriginalMacAddress(deviceMacAddress);
+  getRouterMacAddress(routerMacAddress);
+
+  initMacQueue();
 }
 
 /**
@@ -72,6 +88,11 @@ void destroyScanner() {
   }
 
   pcap_close(pcapDevHandle);
+
+  free(deviceMacAddress);
+  free(routerMacAddress);
+
+  destroyMacQueue();
 }
 
 /*=============================================================================
@@ -93,15 +114,23 @@ void receivePacket(u_char *args, const struct pcap_pkthdr *header, const u_char 
   IpHeader *ipHeader;
   TcpHeader *tcpHeader;
 
-  fprintf(stderr, "Received packet:\n");
-
   ethernetHeader = (EthernetHeader *) packet;
   ipHeader = (IpHeader *) IP_START(packet);
   tcpHeader = (TcpHeader *) TCP_START(packet, ipHeader);
 
-  if(ethernetHeader->destination[1] != 0x0a && ethernetHeader->source[1] != 0x0a) {
-    fprintf(stderr, "Destination MAC Address:\t%.2hhx:%.2hhx:%.2hhx:%.2hhx:%.2hhx:%.2hhx\n", ethernetHeader->destination[0], ethernetHeader->destination[1], ethernetHeader->destination[2], ethernetHeader->destination[3], ethernetHeader->destination[4], ethernetHeader->destination[5]);
-    fprintf(stderr, "Source MAC Address:\t%.2hhx:%.2hhx:%.2hhx:%.2hhx:%.2hhx:%.2hhx\n", ethernetHeader->source[0], ethernetHeader->source[1], ethernetHeader->source[2], ethernetHeader->source[3], ethernetHeader->source[4], ethernetHeader->source[5]);
+  if(!strncmp(deviceMacAddress, ethernetHeader->destination, NETFREE_MAC_SIZE) && !strncmp(routerMacAddress, ethernetHeader->destination, NETFREE_MAC_SIZE)) {
+    enqueueMac(ethernetHeader->destination, 0);
+  }
+
+  if(!strncmp(deviceMacAddress, ethernetHeader->source, NETFREE_MAC_SIZE) && !strncmp(routerMacAddress, ethernetHeader->source, NETFREE_MAC_SIZE)) {
+    enqueueMac(ethernetHeader->source, 0);
+  }
+
+  if(!strncmp(deviceMacAddress, ethernetHeader->destination, NETFREE_MAC_SIZE) && !strncmp(deviceMacAddress, ethernetHeader->source, NETFREE_MAC_SIZE)) {
+    fprintf(stderr, "Received packet:\n");
+
+    fprintf(stderr, "\tDestination MAC Address:\t" NETFREE_MAC_REGEX "\n", NETFREE_ARR_TO_MAC(ethernetHeader->destination));
+    fprintf(stderr, "\tSource MAC Address:\t" NETFREE_MAC_REGEX "\n", NETFREE_ARR_TO_MAC(ethernetHeader->source));
   }
 }
 
@@ -132,7 +161,7 @@ void *scanNetwork(void *ptr) {
  * NETFREE_MIN_ADDRESSES, which is defined in scanner.h, addresses are found.
  */
 void scan() {
-  pthread_create(&scannerThread, NULL, destroyScanner, NULL);
+  pthread_create(&scannerThread, NULL, scanNetwork, NULL);
 
   // Give the system to populate.
   while(macQueueLength() < NETFREE_MIN_ADDRESSES) {

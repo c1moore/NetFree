@@ -10,6 +10,9 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <stdbool.h>
+#include <net/if_arp.h>
+#include <net/if.h>
+#include <errno.h>
 
 #include "includes/mac.h"
 
@@ -156,6 +159,52 @@ int getCurrentMacAddress(char *macAddress) {
 }
 
 /**
+ * Obtains the MAC address of the router to which this device is connected.  
+ *
+ * @param routerMac (char *) - a pointer to at least NETFREE_MAC_SIZE of memory where the
+ *  router's MAC address can be stored.  This string will NOT be NULL-terminated.
+ *
+ * @return (int) the status of this operation upon completion.  If successful, 0 will be
+ *  returned.  Otherwise, a nonzero integer will be returned.
+ */
+int getRouterMacAddress(char *routerMac) {
+  FILE *cmdOutput;
+  char letter;
+
+  cmdOutput = popen("/usr/sbin/arp -a", "r");
+  if(cmdOutput == NULL) {
+    fprintf(stderr, "Could not determine router MAC.\n");
+
+    return -1;
+  }
+
+  // Eat the router name.
+  do {
+    letter = (char) fgetc(cmdOutput);
+  } while(letter != ' ');
+
+  // Eat the router IP address.
+  do {
+    letter = (char) fgetc(cmdOutput);
+  } while(letter != ' ');
+
+  // Eat the word "at".
+  do {
+    letter = (char) fgetc(cmdOutput);
+  } while(letter != ' ');
+
+  if(fscanf(cmdOutput, NETFREE_MAC_READ_REGEX, NETFREE_WR_TO_MAC(routerMac)) == EOF) {
+    pclose(cmdOutput);
+
+    return -1;
+  }
+
+  pclose(cmdOutput);
+
+  return 0;
+}
+
+/**
  * Returns the original MAC address, which is determined by the first call to
  * initMacAddress().
  *
@@ -194,4 +243,45 @@ int macEquals(char *leftOperand, char *rightOperand) {
   }
 
   return true;
+}
+
+/**
+ * Sets this device's MAC address to the one specified by newMacAddress.
+ *
+ * @param newMacAddress (char *) - the new MAC address to which the device's MAC address
+ *  should be set
+ *
+ * @return (int) the status of the operation.  0 is returned on success.  On failure, a
+ *  nonzero integer is returned.
+ */
+int setDeviceMacAddress(char *newMacAddress) {
+  struct ifreq ifr;
+  int sock;
+
+  sock = socket(AF_INET, SOCK_DGRAM, 0);
+  if(sock == -1) {
+    fprintf(stderr, "Could not set new MAC address.\n");
+
+    return -1;
+  }
+
+  strcpy(ifr.ifr_name, iface);
+  ifr.ifr_hwaddr.sa_data[0] = newMacAddress[0];
+  ifr.ifr_hwaddr.sa_data[1] = newMacAddress[1];
+  ifr.ifr_hwaddr.sa_data[2] = newMacAddress[2];
+  ifr.ifr_hwaddr.sa_data[3] = newMacAddress[3];
+  ifr.ifr_hwaddr.sa_data[4] = newMacAddress[4];
+  ifr.ifr_hwaddr.sa_data[5] = newMacAddress[5];
+  ifr.ifr_hwaddr.sa_family = ARPHRD_ETHER;
+
+  errno = 0;
+  if(ioctl(sock, SIOCSIFHWADDR, &ifr) == -1) {
+    fprintf(stderr, "Could not set new MAC address.\n");
+    perror(strerror(errno));
+    fprintf(stderr, "%d\n", errno);
+
+    return -2;
+  }
+
+  return 0;
 }
