@@ -1,6 +1,6 @@
 # NetFree
 
-A project built that can bypass the need to pay for a network that would otherwise cost money.  There really is no purpose to this project.  It acts as an interesting proof of concept and an interesting side project.
+**This project is still under development.** A project built that can bypass the need to pay for a network that would otherwise cost money.  There really is no purpose to this project other than to say I was able to do it.  It acts as an interesting proof of concept and an interesting side project.  If you want to receive notifications about the project, including when the project is released/finished, "Watch" and/or "Star" the project (top-right hand corner of the page below the navbar).
 
 ### Inspiration
 
@@ -8,7 +8,7 @@ This project was inspired by something I stumbled upon while searching the inter
 
 ### Disclaimer
 
-As usual this product is available without any guarantees, whether implicit or explicit.  In other words, you may be able to connect to fortified routers free of charge, the software may not work at all, or you could tear a hole in the fabric of reality and leave twinkies wrappers all over space and time or even cause aliens from the space between space to attack and enslave all humans... use at your own risk.  Furthermore, I do not provide this software as a means to bypass paying for web services.  As with any service, companies can rightfully charge you for access to the Internet using their subscription and devices.  While some companies may provide these services free, not all companies can afford to do so or find value in doing so.  Nor is this technology meant to be used as a means to connect to otherwise private networks.  Be respectful of your local laws and others' right to restrict access to their network.
+As usual this product is available without any guarantees, whether implicit or explicit.  In other words, you may be able to connect to fortified routers free of charge, the software may not work at all, or you could tear a hole in the fabric of reality and leave twinkies wrappers all over space and time or even cause aliens from the space between space to attack and enslave all humans... use at your own risk.  Furthermore, I do not provide this software as a means to bypass paying for web services.  As with any service, companies can rightfully charge you for access to the Internet using their subscription and devices.  While some companies may provide these services free, not all companies can afford to do so or find value in doing so.  Nor is this technology meant to be used as a means to connect to otherwise private networks.  Be respectful of your local laws and others' right to restrict access to their network.  In other words, **do NOT use this software for illegal or immoral activities.**
 
 ### How does it work?
 
