@@ -1,5 +1,6 @@
 #include "TestSuite.h"
 #include "Assertions.h"
+#include "Mocks.h"
 #include "mac.h"
 #include "netfree.h"
 
@@ -34,19 +35,19 @@ void test_macEquals_doesNotEqual() {
 }
 
 void addMacTests() {
-  describe("MAC Tests");
-    describe("initMac()");
-    endDescribe();
+  // describe("MAC Tests");
+  //   describe("initMac()");
+  //   endDescribe();
 
-    describe("destroyMac()");
-      beforeEach(beforeEach_destroyMac);
+  //   describe("destroyMac()");
+  //     beforeEach(beforeEach_destroyMac);
 
-      test("should release all memory allocated when initializing", test_destroyMac_releaseMemory);
-    endDescribe();
+  //     test("should release all memory allocated when initializing", test_destroyMac_releaseMemory);
+  //   endDescribe();
 
-    describe("macEquals()");
-      test("should return true when both MAC address have the same MAC address", test_macEquals_equals);
-      test("should return false when the MAC addresses do not have the same MAC address", test_macEquals_doesNotEqual);
-    endDescribe();
-  endDescribe();
+  //   describe("macEquals()");
+  //     test("should return true when both MAC address have the same MAC address", test_macEquals_equals);
+  //     test("should return false when the MAC addresses do not have the same MAC address", test_macEquals_doesNotEqual);
+  //   endDescribe();
+  // endDescribe();
 }

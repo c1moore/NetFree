@@ -1,7 +1,7 @@
 #ifndef _C1MOORE_TEST_ASSERTIONS
   #define _C1MOORE_TEST_ASSERTIONS
 
-  #include <callback.h>
+  #include "TestSuite.h"
 
   extern void expectFalse(void *data);
   extern void expectTrue(void *data);

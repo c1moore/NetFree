@@ -3,6 +3,7 @@
 
   #include <stdbool.h>
   #include <stdlib.h>
+  #include <callback.h>
 
   /* Testing colors. */
   #define TC_RESET          "\033[0m"

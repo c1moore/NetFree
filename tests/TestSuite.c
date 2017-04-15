@@ -5,11 +5,12 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <callback.h>
 #include <time.h>
+#include <stdint.h>
 
 #include "TestSuite.h"
 #include "Assertions.h"
+#include "Mocks.h"
 
 int requiredIndentation = 0;
 char *currentTestDescription;
@@ -38,6 +39,7 @@ typedef struct describeBlock {
 
 DescribeBlock *describeBlocks;
 DescribeBlock *currentSuite;
+MockedFunction *mockedFunctions;
 
 /**
  * Initializes the testing framework.  This is similar to calling new on an object in an
