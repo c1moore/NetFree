@@ -2,7 +2,7 @@
 
 **This project is still under development.** A project built that can bypass the need to pay for a network that would otherwise cost money.  There really is no purpose to this project other than to say I was able to do it.  It acts as an interesting proof of concept and an interesting side project.  If you want to receive notifications about the project, including when the project is released/finished, "Watch" and/or "Star" the project (top-right hand corner of the page below the navbar).
 
-**Status: ** _Under Development_  If you are interested in this project, please "Watch" and/or "Star" the project.  This will encourage me to continue developing this project over others I have in the pipeline.
+**Status:** _Under Development_  If you are interested in this project, please "Watch" and/or "Star" the project.  This will encourage me to continue developing this project over others I have in the pipeline.
 
 ### Inspiration
 
@@ -14,7 +14,7 @@ As usual this product is available without any guarantees, whether implicit or e
 
 ### How does it work?
 
-I don't know, yet.  Let me write the program first!  The idea, though, is to listen to current WiFi signals being sent to the fortified router in promiscuous mode and grab valid MAC addresses from there.  ~Falling back to Mac-and-Cheese's method, if necessary.~  Mac-n-Cheese using nmap to scan the network, which probably isn't the optimal solution.  Besides, this approach has shown promise thus far.
+I don't know, yet.  Let me write the program first!  The idea, though, is to listen to current WiFi signals being sent to the fortified router in promiscuous mode and grab valid MAC addresses from there.  ~Falling back to Mac-and-Cheese's method, if necessary.~  Mac-n-Cheese uses `nmap` to scan the network and listen for ARP packets, which probably is less optimal than the solution I plan on using.  Besides, this approach has been promising thus far.
 
 ### How to Use
 
