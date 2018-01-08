@@ -28,6 +28,9 @@ void exitSystem(int exitCode) {
   char originalMacAddress[NETFREE_MAC_SIZE];
   getOriginalMacAddress(originalMacAddress);
 
+  destroyScanner();
+
+  fprintf(stderr, "Resetting to original MAC address.\n");
   setDeviceMacAddress(originalMacAddress);
 
   destroyMac();
@@ -103,7 +106,11 @@ int main(int argc, char **argv) {
   sigaction(SIGHUP, &interruptHandler, NULL);
   sigaction(SIGTSTP, &interruptHandler, NULL);
 
-  initScanner(iface);
+  status = initScanner(iface);
+  if(status != 0) {
+    exitSystem(status);
+  }
+
   scan();
 
   char macAddress[NETFREE_MAC_SIZE];

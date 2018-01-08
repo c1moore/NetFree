@@ -1,11 +1,11 @@
 /**
- * 
+ *
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
-#include <net/if.h> 
+#include <net/if.h>
 #include <unistd.h>
 #include <netinet/in.h>
 #include <string.h>
@@ -44,7 +44,7 @@ int getCurrentMacAddressBySystemFile(char *macAddress) {
   // Open and read the file.
   if(access(systemFileName, R_OK)) {
     free(systemFileName);
-    
+
     return -1;
   }
 
@@ -159,7 +159,7 @@ int getCurrentMacAddress(char *macAddress) {
 }
 
 /**
- * Obtains the MAC address of the router to which this device is connected.  
+ * Obtains the MAC address of the router to which this device is connected.
  *
  * @param routerMac (char *) - a pointer to at least NETFREE_MAC_SIZE of memory where the
  *  router's MAC address can be stored.  This string will NOT be NULL-terminated.
@@ -277,8 +277,7 @@ int setDeviceMacAddress(char *newMacAddress) {
   errno = 0;
   if(ioctl(sock, SIOCSIFHWADDR, &ifr) == -1) {
     fprintf(stderr, "Could not set new MAC address.\n");
-    perror(strerror(errno));
-    fprintf(stderr, "%d\n", errno);
+    fprintf(stderr, "\t(%d) - %s\n", errno, strerror(errno));
 
     return -2;
   }

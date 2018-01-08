@@ -62,7 +62,7 @@ int length;
  * Initializes the queue for use.
  */
 void initMacQueue() {
-  queueHead = (PriorityMacElement *) malloc(sizeof(PriorityMacElement));
+  queueHead = (PriorityMacElement *) calloc(1, sizeof(PriorityMacElement));
   length = 0;
 
   pthread_mutex_init(&queueMutex, NULL);
@@ -84,7 +84,10 @@ void destroyMacQueue() {
     free(previous);
   }
 
-  free(current->macAddress);
+  if(current != queueHead) {
+    free(current->macAddress);
+  }
+
   free(current);
 
   queueHead = NULL;
@@ -211,11 +214,11 @@ int macQueueLength() {
  *  where a copy of the MAC address can be stored.  If macAddress is NULL, the MAC address
  *  will not be set
  *
- * @return (char *) macAddress 
+ * @return (char *) macAddress
  */
 char *dequeueMac(char *macAddress) {
   PriorityMacElement *top;
-  
+
   if(macAddress) {
     macQueuePeek(macAddress);
   }
@@ -225,7 +228,7 @@ char *dequeueMac(char *macAddress) {
     top = queueHead->next;
 
     queueHead->next = top->next;
-    
+
     strncpy(macAddress, top->macAddress, NETFREE_MAC_SIZE);
 
     free(top->macAddress);
