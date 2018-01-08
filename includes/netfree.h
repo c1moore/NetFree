@@ -1,5 +1,5 @@
 #ifndef _NETFREE
   #define _NETFREE
 
-  #define DEFAULT_IFACE   "wlan0"
+  #define DEFAULT_IFACE   "wlp4s0"
 #endif
