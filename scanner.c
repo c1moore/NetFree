@@ -29,9 +29,16 @@ int initScanner(char *iface) {
                       netMask = 0;
 
   scannerThread = (pthread_t) 0;
-  pcapDevHandle = pcap_create(iface, pcapError);
 
-  status = pcap_set_promisc(pcapDevHandle, 1);
+  pcapDevHandle = pcap_create(iface, pcapError);
+  if(pcapDevHandle == NULL) {
+    fprintf(stderr, "Error while creating packet capture handle:\n");
+    fprintf(stderr, "%s\n", pcapError);
+
+    return -6;
+  }
+
+  status = pcap_set_rfmon(pcapDevHandle, 1);
   if(status) {
     // An error occurred setting the device in promiscuous mode.
     fprintf(stderr, "Could not start promiscuous mode. Make sure you have root (admin) privileges.\n");
@@ -52,22 +59,29 @@ int initScanner(char *iface) {
     // An error occurred activating the device.
     fprintf(stderr, "An error occurred trying to activate the device:\n\t%s\n", pcapError);
 
-    return -3;
+    return -7;
   }
 
-  status = pcap_compile(pcapDevHandle, &pcapFilter, "tcp", 1, netMask);
+  if(pcap_datalink(pcapDevHandle) != DLT_EN10MB) {
+    // This program requires Ethernet headers, but this device does not support these headers.
+    fprintf(stderr, "Ethernet headers not supported (Required: %d; Actual: %d).  Quitting.\n", DLT_EN10MB, pcap_datalink(pcapDevHandle));
+
+    return -5;
+  }
+
+  status = pcap_compile(pcapDevHandle, &pcapFilter, "tcp or udp", 1, netMask);
   if(status) {
     // An error occurred compiling the filter.
     fprintf(stderr, "An error occurred compiling the pcap filter.\n");
 
-    return -4;
+    return -3;
   }
 
   status = pcap_setfilter(pcapDevHandle, &pcapFilter);
   if(status) {
     fprintf(stderr, "An error occurred setting the pcap filter.\n");
 
-    return -5;
+    return -4;
   }
 
   deviceMacAddress = (char *) malloc(NETFREE_MAC_SIZE);
@@ -77,6 +91,8 @@ int initScanner(char *iface) {
   getRouterMacAddress(routerMacAddress);
 
   initMacQueue();
+
+  return 0;
 }
 
 /**
