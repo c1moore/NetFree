@@ -1,8 +1,8 @@
 # NetFree
 
-**This project is still under development.** A project built that can bypass the need to pay for a network that would otherwise cost money.  There really is no purpose to this project other than to say I was able to do it.  It acts as an interesting proof of concept and an interesting side project.  If you want to receive notifications about the project, including when the project is released/finished, "Watch" and/or "Star" the project (top-right hand corner of the page below the navbar).
+A project built that can bypass the need to pay for a network that would otherwise cost money.  There really is no purpose to this project other than to say I was able to do it.  It acts as an interesting proof of concept and an interesting side project.  If you want to receive notifications about the project, including when the project is released/finished, "Watch" and/or "Star" the project (top-right hand corner of the page below the navbar).
 
-**Status:** _Under Development_  If you are interested in this project, please "Watch" and/or "Star" the project.  This will encourage me to continue developing this project over others I have in the pipeline.
+**Status:** _Not Under Active Development_  As explained below, I cannot continue to pursue this project at the moment.
 
 ### Inspiration
 
@@ -16,7 +16,7 @@ As usual this product is available without any guarantees, whether implicit or e
 
 The idea was to listen to the current TCP/IP packets being sent over the network (using ~promiscuous~ radio monitor mode), collecting the MAC address of each packet captured.  As these MAC addresses were collected, the program would rank them based on 2 factors: the number of requests observed from this address and how long ago the last request was received from this address (i.e. the last request's age).  The idea behind counting the number of requests was that authenticated systems should send more TCP requests to the fortified router than unauthenticated systems.  The second factor accounted for routers that granted access for only a limited time.  The weight that each of these factors held was (somewhat) dynamic to account for various types of networks.
 
-Once enough data was collected, the User could cycle through the MAC addresses collected until a feasible one was found.  Even after the User found a good MAC address, the system would continue to listen for requests over the network, continuously updating its list, just in case the MAC address stopped working.
+Once enough data was collected, the User could cycle through the MAC addresses collected until a feasible one was found (hopefully the first).  Even after the User found a good MAC address, the system would continue to listen for requests over the network, continuously updating its list, just in case the MAC address stopped working.
 
 ## What happened?
 
