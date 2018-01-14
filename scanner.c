@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 #include "scanner.h"
-#include "iptcpdata.h"
+#include "HeaderParser.h"
 #include "MacQueue.h"
 #include "mac.h"
 
@@ -29,6 +29,12 @@ int initScanner(char *iface) {
                       netMask = 0;
 
   scannerThread = (pthread_t) 0;
+
+  deviceMacAddress = (char *) malloc(NETFREE_MAC_SIZE);
+  getOriginalMacAddress(deviceMacAddress);
+
+  routerMacAddress = (char *) malloc(NETFREE_MAC_SIZE);
+  getRouterMacAddress(routerMacAddress);
 
   pcapDevHandle = pcap_create(iface, pcapError);
   if(pcapDevHandle == NULL) {
@@ -62,9 +68,9 @@ int initScanner(char *iface) {
     return -7;
   }
 
-  if(pcap_datalink(pcapDevHandle) != DLT_EN10MB) {
+  if(pcap_datalink(pcapDevHandle) != DLT_IEEE802_11_RADIO) {
     // This program requires Ethernet headers, but this device does not support these headers.
-    fprintf(stderr, "Ethernet headers not supported (Required: %d; Actual: %d).  Quitting.\n", DLT_EN10MB, pcap_datalink(pcapDevHandle));
+    fprintf(stderr, "Header type not supported (Required: %d; Actual: %d).  Quitting.\n", DLT_IEEE802_11_RADIO, pcap_datalink(pcapDevHandle));
 
     return -5;
   }
@@ -84,13 +90,10 @@ int initScanner(char *iface) {
     return -4;
   }
 
-  deviceMacAddress = (char *) malloc(NETFREE_MAC_SIZE);
-  routerMacAddress = (char *) malloc(NETFREE_MAC_SIZE);
-
-  getOriginalMacAddress(deviceMacAddress);
-  getRouterMacAddress(routerMacAddress);
-
   initMacQueue();
+
+  fprintf(stderr, "Device MAC:\t" NETFREE_MAC_REGEX "\n", NETFREE_ARR_TO_MAC(deviceMacAddress));
+  fprintf(stderr, "Router MAC:\t" NETFREE_MAC_REGEX "\n", NETFREE_ARR_TO_MAC(routerMacAddress));
 
   return 0;
 }
@@ -126,27 +129,23 @@ void destroyScanner() {
  * @param packet (const u_char *) - the packet that was received
  */
 void receivePacket(u_char *args, const struct pcap_pkthdr *header, const u_char *packet) {
-  EthernetHeader *ethernetHeader;
+  RadioTapHeader *radioTapHeader;
+  WiFiHeader *wifiHeader;
   IpHeader *ipHeader;
-  TcpHeader *tcpHeader;
 
-  ethernetHeader = (EthernetHeader *) packet;
-  ipHeader = (IpHeader *) IP_START(packet);
-  tcpHeader = (TcpHeader *) TCP_START(packet, ipHeader);
+  radioTapHeader = (RadioTapHeader *) radioTapHeader;
+  wifiHeader = (WiFiHeader *) (WIFI_START(radioTapHeader));
 
-  if(!strncmp(deviceMacAddress, ethernetHeader->destination, NETFREE_MAC_SIZE) && !strncmp(routerMacAddress, ethernetHeader->destination, NETFREE_MAC_SIZE)) {
-    enqueueMac(ethernetHeader->destination, 0);
-  }
+  fprintf(stderr, "Received packet...\n");
 
-  if(!strncmp(deviceMacAddress, ethernetHeader->source, NETFREE_MAC_SIZE) && !strncmp(routerMacAddress, ethernetHeader->source, NETFREE_MAC_SIZE)) {
-    enqueueMac(ethernetHeader->source, 0);
-  }
+  if(macEquals(deviceMacAddress, wifiHeader->addr1) && macEquals(deviceMacAddress, wifiHeader->addr2) && macEquals(deviceMacAddress, wifiHeader->addr3) && macEquals(deviceMacAddress, wifiHeader->addr4)) {
+    fprintf(stderr, "Received Packet:\n");
 
-  if(!strncmp(deviceMacAddress, ethernetHeader->destination, NETFREE_MAC_SIZE) && !strncmp(deviceMacAddress, ethernetHeader->source, NETFREE_MAC_SIZE)) {
-    fprintf(stderr, "Received packet:\n");
-
-    fprintf(stderr, "\tDestination MAC Address:\t" NETFREE_MAC_REGEX "\n", NETFREE_ARR_TO_MAC(ethernetHeader->destination));
-    fprintf(stderr, "\tSource MAC Address:\t" NETFREE_MAC_REGEX "\n", NETFREE_ARR_TO_MAC(ethernetHeader->source));
+    fprintf(stderr, "\tControl Code:\t%d\n", WIFI_FLAG_TYPE(wifiHeader));
+    fprintf(stderr, "\tAddress 1:\t" NETFREE_MAC_REGEX "\n", NETFREE_ARR_TO_MAC(wifiHeader->addr1));
+    fprintf(stderr, "\tAddress 1:\t" NETFREE_MAC_REGEX "\n", NETFREE_ARR_TO_MAC(wifiHeader->addr2));
+    fprintf(stderr, "\tAddress 1:\t" NETFREE_MAC_REGEX "\n", NETFREE_ARR_TO_MAC(wifiHeader->addr3));
+    fprintf(stderr, "\tAddress 1:\t" NETFREE_MAC_REGEX "\n", NETFREE_ARR_TO_MAC(wifiHeader->addr4));
   }
 }
 
@@ -157,6 +156,8 @@ void receivePacket(u_char *args, const struct pcap_pkthdr *header, const u_char 
  */
 void *scanNetwork(void *ptr) {
   int oldValue;
+
+  fprintf(stderr, "Starting scan...\n");
 
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldValue);
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldValue);

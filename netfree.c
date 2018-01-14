@@ -15,6 +15,8 @@
 #include "scanner.h"
 #include "MacQueue.h"
 
+int scannerCreated = 0;
+
 
 /**
  * Resets the device's MAC address to its original MAC address and exits the system with
@@ -28,10 +30,15 @@ void exitSystem(int exitCode) {
   char originalMacAddress[NETFREE_MAC_SIZE];
   getOriginalMacAddress(originalMacAddress);
 
-  destroyScanner();
+  char currentMacAddress[NETFREE_MAC_SIZE];
+  getCurrentMacAddress(currentMacAddress);
 
-  fprintf(stderr, "Resetting to original MAC address.\n");
-  setDeviceMacAddress(originalMacAddress);
+  if(!macEquals(originalMacAddress, currentMacAddress)) {
+    destroyScanner();
+
+    fprintf(stderr, "Resetting to original MAC address.\n");
+    setDeviceMacAddress(originalMacAddress);
+  }
 
   destroyMac();
 

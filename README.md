@@ -6,30 +6,36 @@
 
 ### Inspiration
 
-This project was inspired by something I stumbled upon while searching the interwebs called [Mac-n-Cheese](https://github.com/MarcoPolo/Mac-n-Cheese).  Mac-n-Cheese attempts to bypass networks that would otherwise require money and/or private networks by spoofing one's MAC address with one that has already paid.  Unfortunately, Mac-n-Cheese can take a while to load.  At the time of writing this, the description for Mac-n-Cheese claims to have taken 8 minutes at one location to find a valid MAC address.
+This project was inspired by something I stumbled upon while searching the interwebs called [Mac-n-Cheese](https://github.com/MarcoPolo/Mac-n-Cheese).  Mac-n-Cheese attempts to bypass networks that would otherwise require money and/or private networks by spoofing one's MAC address with one that has already paid.  Seemingly from Mac-n-Cheese's README, the idea appears to work.  Unfortunately, Mac-n-Cheese can take a while to load.  At the time of writing this, the description for Mac-n-Cheese claims to have taken 8 minutes at one location to find a valid MAC address.
 
 ### Disclaimer
 
 As usual this product is available without any guarantees, whether implicit or explicit.  I am also not liable for what may or may not happen using this software.  If you use this software, you MUST acknowledge me as the author around any relevant code.  By using this software you agree to all the above points.  Furthermore, I do not provide this software as a means to bypass paying for web services.  As with any service, companies can rightfully charge you for access to the Internet using their subscription and devices.  While some companies may provide these services free, not all companies can afford to do so or find value in doing so.  Nor is this technology meant to be used as a means to connect to otherwise private networks.  Be respectful of your local laws and others' right to restrict access to their network.  In other words, **do NOT use this software for illegal or immoral activities.**
 
-### How does it work?
+### How ~does it~ was it supposed to work?
 
-I don't know, yet.  Let me write the program first!  The idea, though, is to listen to current WiFi signals being sent to the fortified router in promiscuous mode and grab valid MAC addresses from there.  ~Falling back to Mac-and-Cheese's method, if necessary.~  Mac-n-Cheese uses `nmap` to scan the network and listen for ARP packets, which probably is less optimal than the solution I plan on using.  Besides, this approach has been promising thus far.
+The idea was to listen to the current TCP/IP packets being sent over the network (using ~promiscuous~ radio monitor mode), collecting the MAC address of each packet captured.  As these MAC addresses were collected, the program would rank them based on 2 factors: the number of requests observed from this address and how long ago the last request was received from this address (i.e. the last request's age).  The idea behind counting the number of requests was that authenticated systems should send more TCP requests to the fortified router than unauthenticated systems.  The second factor accounted for routers that granted access for only a limited time.  The weight that each of these factors held was (somewhat) dynamic to account for various types of networks.
 
-### How to Use
+Once enough data was collected, the User could cycle through the MAC addresses collected until a feasible one was found.  Even after the User found a good MAC address, the system would continue to listen for requests over the network, continuously updating its list, just in case the MAC address stopped working.
 
-I'll get to this later.
+## What happened?
+
+The idea seems promising, but I don't have access to a system where promiscuous (or monitor) mode actually works.  To test this theory, I installed Wireshark on all my systems and the only traffic that was captured was traffic to/from the system on which I ran Wireshark.
 
 ### Next Steps
 
-Here are a few additional ideas to improve/enhance the system.  If I obtain enough requests for them, I will implement them as time presents itself.
+It would be awesome to continue this project.  I'm actually pretty happy/impressed on how it turned out.  Unfortunately, computers aren't cheap and I'm not sure how to guarantee a computer will actually work in one of the required modes.  So, the true next step (obtaining a system for testing), is unlikely to happen.
 
-- Abstract away the platform using a bridge/facade inspired design
+However, here are a few additional ideas to improve/enhance the system.  If I obtain a system on which promiscuous/monitor mode work, I will implement them as time presents itself.
 
-### Questions
+- Add actual user input to the main runtime so the program doesn't have to be recompiled when playing around with parameters
+- Abstract away any platform-specific code
+- Improve the pcap filters to automatically exclude traffic from the current machine
 
-**Why did you create your own testing framework instead of using cmocka?**  For the most part, I don't like cmocka's notation (or documentation).  Furthermore, its code is pretty atrocious: everything is in the same file and kinda convoluted.  In my opinion, not even what it's supposed to do well (mocking functions) does it do well.  However, I have used quite a few testing frameworks before and I figured I could create a better assertion library and testing framework.  The result?  Something similar to what you might expect to see in JavaScript (using Jasmine/Karma or Mocha) or other higher level language (maybe even [Java](http://www.mscharhag.com/java/oleaster-jasmine-junit-tests)).  Originally, I had hoped to use cmocka's mocking library; however, after looking more into the library I determined I didn't like their approach anymore than the one I originally thought of using to mock functions (i.e. using wrapper functions the same way I mock `*alloc()` and `free()`).  Since this appears to be the best/only approach, I plan on adding this feature eventually to my testing framework.
+### What did you learn?
 
-**Why didn't you use [_insert favorite OO programming language_]?**  Good question.  Hopefully my answer will be equally well-received.  I enjoy using C as it is a challenge, especially to write good, clean code.  Have you ever thought, "Hmm... I bet I can structure my C code similar to how I would using OOP or make something like that (_insert higher-level programming language construct like try...catch here_)?"  Or have you ever looked at the code available for C libraries and were frightened by the mess that could have been structured much nicer?  Well, I have and I like challenging myself to do so.  However, the code should be written in such a way that would make it extremely easy to convert to a C++ (or other OO language) equivalent implementation.  Who knows, I just might try that, eventually.
+This project was pretty neat and I would be interested in actually experimenting with its feasibility.  Even before I realized my system didn't support promiscuous/monitor mode despite it seemingly being able to work in Wireshark, I enjoyed working on this project.  Playing around with networking and lower-level technology was an interesting and welcome change to web development.
 
-**I can't run the (tests|code).  Help!**  That's not really a question, but if the problem is with the tests chances are you need to install libffcall.  For me, that meant running `sudo apt-get install libffcall1-dev`.  If that doesn't work, well, I'm good, but I can't debug the future without knowing something about the problem.  Just open an issue on this page with details of what lead to the problem and any debugging information available.
+Throughout this project, my previous experience working with the Linux kernel and coursework on networking came in handy and was reinforced.  However, much of my coursework with networking was not practical (i.e. did not involve programming), so combining the two was challenging.  Also, my networking course touched on WiFi and the 802.11 protocol, but did not delve much into 802.11 headers.  So, I had to research the protocol a little more in depth.
+
+Finally, working with the pcap library was completely new to me.  Determining the various different ways to configure and start pcap as well as filter its results required research and some cleverness where documentation was sparse.

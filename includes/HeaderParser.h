@@ -1,8 +1,22 @@
 #ifndef _NETFREE_IP_TCP_DATA
   #define _NETFREE_IP_TCP_DATA
-  
+
   #include <netinet/in.h>
+  #include <stdint.h>
   #include "mac.h"
+
+  #define WIFI_START(radioTapHeader)              (int) radioTapHeader->headerLength + radioTapHeader
+  #define WIFI_FLAG_PROTOCOL_VERSION(wifiHeader)  wifiHeader->frameControl & 0xc000
+  #define WIFI_FLAG_TYPE(wifiHeader)              wifiHeader->frameControl & 0x3000
+  #define WIFI_FLAG_SUBTYPE(wifiHeader)           wifiHeader->frameControl & 0x0f00
+  #define WIFI_FLAG_AP_TO                         wifiHeader->frameControl & 0x0080
+  #define WIFI_FLAG_AP_FROM                       wifiHeader->frameControl & 0x0040
+  #define WIFI_FLAG_MORE_FRAG                     wifiHeader->frameControl & 0x0020
+  #define WIFI_FLAG_RETRY                         wifiHeader->frameControl & 0x0010
+  #define WIFI_FLAG_POWER_MGT                     wifiHeader->frameControl & 0x0008
+  #define WIFI_FLAG_MORE_DATA                     wifiHeader->frameControl & 0x0004
+  #define WIFI_FLAG_WEP                           wifiHeader->frameControl & 0x0002
+  #define WIFI_FLAG_RSVD                          wifiHeader->frameControl & 0x0001
 
   #define IP_START(packetPtr)         packetPtr + sizeof(EthernetHeader)
   #define IP_VERSION(ipHeader)        ipHeader->versionAndHeaderLength >> 4
@@ -23,11 +37,30 @@
   #define TCP_FLAG_SYN(tcpHeader)     tcpHeader->flags & 0x002
   #define TCP_FLAG_FIN(tcpHeader)     tcpHeader->flags & 0x001
 
+  typedef struct RadioTapHeaderStruct RadioTapHeader;
+  struct RadioTapHeaderStruct {
+    u_int8_t  version;
+    u_int8_t  pad;
+    u_int16_t headerLength;
+    u_int32_t dataFieldsPresent;
+  };
+
   typedef struct EthernetHeaderStruct EthernetHeader;
   struct EthernetHeaderStruct {
     u_char  destination[NETFREE_MAC_SIZE];
     u_char  source[NETFREE_MAC_SIZE];
     u_short type;
+  };
+
+  typedef struct WiFiHeaderStruct WiFiHeader;
+  struct WiFiHeaderStruct {
+    u_int16_t frameControl;
+    u_int16_t connectionId;
+    u_char    addr1[NETFREE_MAC_SIZE];
+    u_char    addr2[NETFREE_MAC_SIZE];
+    u_char    addr3[NETFREE_MAC_SIZE];
+    u_int16_t sequenceNumber;
+    u_char    addr4[NETFREE_MAC_SIZE];
   };
 
   typedef struct IpHeaderStruct IpHeader;
